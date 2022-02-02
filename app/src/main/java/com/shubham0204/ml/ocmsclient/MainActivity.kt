@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shubham0204.ml.ocmsclient.databinding.ActivityMainBinding
+import java.util.concurrent.Executors
 
 
 class MainActivity : AppCompatActivity() {
@@ -28,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var onScreenAppListener : OnScreenAppListener
     private lateinit var onScreenStatusListener: OnScreenStatusListener
     private val userID = "shubham_panchal"
+    private lateinit var frameAnalyzer: FrameAnalyzer
     private lateinit var firebaseDBManager: FirebaseDBManager
     private lateinit var foregroundAppServiceIntent : Intent
 
@@ -39,21 +41,15 @@ class MainActivity : AppCompatActivity() {
 
         onScreenAppListener = OnScreenAppListener( this )
 
-        /*if ( checkCameraPermission() ) {
+        frameAnalyzer = FrameAnalyzer()
+
+        if ( checkCameraPermission() ) {
             startCameraPreview()
         }
         else {
             requestCameraPermission()
-        }*/
-
-        lifecycle.addObserver( lifecycleEventObserver )
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val userManager = getSystemService( Context.USER_SERVICE ) as UserManager
-            if ( userManager.isUserUnlocked ) {
-                // Access usage history ...
-            }
         }
+
 
         onScreenAppListener.getForegroundApp()
         firebaseDBManager = FirebaseDBManager( userID )
@@ -77,7 +73,9 @@ class MainActivity : AppCompatActivity() {
 
         override fun inForeground(secondsSinceBackground: Int?) {
             firebaseDBManager.updateOnScreenStatus( true )
+            notifyCameraAudioPermissionStatus()
             if ( this@MainActivity::foregroundAppServiceIntent.isInitialized ) {
+                Log.e( "APP" , "stopped" )
                 stopService( foregroundAppServiceIntent )
             }
         }
@@ -96,14 +94,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private val lifecycleEventObserver = LifecycleEventObserver { source, event ->
-        if (event == Lifecycle.Event.ON_RESUME ) {
-            Log.e( "APP" , "resumed" )
-        }
-        else if ( event == Lifecycle.Event.ON_PAUSE ) {
-
-        }
-    }
 
     // The `PACKAGE_USAGE_STATS` permission is a not a runtime permission and hence cannot be
     // requested directly using `ActivityCompat.requestPermissions`. All special permissions
@@ -124,6 +114,11 @@ class MainActivity : AppCompatActivity() {
             )
         }
         return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun notifyCameraAudioPermissionStatus() {
+        firebaseDBManager.updateCameraPermissionStatus( checkUsageStatsPermission() )
+        firebaseDBManager.updateAudioPermissionStatus( checkAudioPermission() )
     }
 
 
@@ -160,6 +155,11 @@ class MainActivity : AppCompatActivity() {
                 PackageManager.PERMISSION_GRANTED
     }
 
+    private fun checkAudioPermission() : Boolean {
+        return ActivityCompat.checkSelfPermission( this , Manifest.permission.RECORD_AUDIO ) ==
+                PackageManager.PERMISSION_GRANTED
+    }
+
     private fun startCameraPreview() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance( this )
         cameraProviderFuture.addListener({
@@ -168,12 +168,12 @@ class MainActivity : AppCompatActivity() {
             val cameraSelector : CameraSelector = CameraSelector.Builder()
                 .requireLensFacing( CameraSelector.LENS_FACING_BACK )
                 .build()
-            // preview.setSurfaceProvider( viewBinding.previewView.surfaceProvider )
+            preview.setSurfaceProvider( viewBinding.cameraPreviewview.surfaceProvider )
             val imageFrameAnalysis = ImageAnalysis.Builder()
                 .setTargetAspectRatio( AspectRatio.RATIO_4_3 )
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
-            //imageFrameAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), frameAnalyzer )
+            imageFrameAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), frameAnalyzer )
             cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview , imageFrameAnalysis )
         }, ContextCompat.getMainExecutor(this) )
     }

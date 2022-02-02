@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
-class FrameAnalyzer(private val viewModel : UIViewModel ) : ImageAnalysis.Analyzer {
+class FrameAnalyzer : ImageAnalysis.Analyzer {
 
 
     private lateinit var currentFrameImage : ImageProxy
