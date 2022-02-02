@@ -19,17 +19,26 @@ class OnScreenAppListener(private var context: Context ) {
     }
 
     // https://github.com/ricvalerio/foregroundappchecker/blob/master/fgchecker/src/main/java/com/rvalerio/fgchecker/detectors/LollipopDetector.java
+
     fun getForegroundApp() : String? {
         var foregroundAppPackageName : String? = null
         val currentTime = System.currentTimeMillis()
+        // The `queryEvents` method takes in the `beginTime` and `endTime` to retrieve the usage events.
+        // In our case, beginTime = currentTime - 10 minutes ( 1000 * 60 * 10 milliseconds )
+        // and endTime = currentTime
         val usageEvents = usageStatsManager.queryEvents( currentTime - (1000*60*10) , currentTime )
         val usageEvent = UsageEvents.Event()
         while ( usageEvents.hasNextEvent() ) {
             usageEvents.getNextEvent( usageEvent )
-            //Log.e( "APP" , "${usageEvent.packageName} ${usageEvent.timeStamp}" )
+            Log.e( "APP" , "${usageEvent.packageName} ${usageEvent.timeStamp}" )
             if ( usageEvent.eventType == UsageEvents.Event.ACTIVITY_RESUMED ) {
-                foregroundAppPackageName = usageEvent.packageName
-                Log.e( "APP" , usageEvent.packageName )
+                foregroundAppPackageName =
+                    if ( nonSystemAppInfoMap.containsKey( usageEvent.packageName ) ) {
+                        nonSystemAppInfoMap[ usageEvent.packageName ]
+                    }
+                    else {
+                        null
+                    }
             }
         }
         return foregroundAppPackageName

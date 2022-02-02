@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">OCMS Client</string>
+    
+    <string name="notification_channel_id">id</string>
+    <string name="notification_channel_name">OCMS</string>
+    <string name="notification_title">Title</string>
+    <string name="notification_message">Text</string>
+    
 </resources>

@@ -12,46 +12,62 @@ class ForegroundAppService() : Service() {
 
     private val handler = Handler( Looper.getMainLooper() )
     private lateinit var onScreenAppListener : OnScreenAppListener
+    private lateinit var firebaseDBManager: FirebaseDBManager
+    private val FOREGROUND_APP_CHECK_INTERVAL = 5000L
+
+    override fun onCreate() {
+        super.onCreate()
+        firebaseDBManager = FirebaseDBManager( "shubham_panchal" )
+    }
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 
     private fun scheduleCheck() {
-        handler.postDelayed( runnable , 5000 )
+        handler.postDelayed( runnable , FOREGROUND_APP_CHECK_INTERVAL )
     }
 
     private val runnable = Runnable() {
-        onScreenAppListener.getForegroundApp()
+        val appName = onScreenAppListener.getForegroundApp()
+        firebaseDBManager.updateOnScreenApp( appName ?: "" )
         scheduleCheck()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val pendingIntent: PendingIntent =
-            Intent(this, MainActivity::class.java).let { notificationIntent ->
-                PendingIntent.getActivity(this, 0, notificationIntent, 0)
-            }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel( "my-id" , "name", NotificationManager.IMPORTANCE_DEFAULT )
-            val notificationManager = getSystemService( Context.NOTIFICATION_SERVICE ) as NotificationManager
-            notificationManager.createNotificationChannel( notificationChannel )
-            val notification: Notification = Notification.Builder(this, "my-id" )
-                .setContentTitle( "Title" )
-                .setContentText( "Message" )
-                .setContentIntent(pendingIntent)
-                .build()
-            startForeground( 100 , notification )
+            startForeground(100, createNotification() )
         }
-        else {
-            startService( Intent( this, ForegroundAppService::class.java) )
-        }
-
-
         onScreenAppListener = OnScreenAppListener( this )
         scheduleCheck()
         return START_STICKY
     }
+
+    private fun createNotification(): Notification {
+        val notificationBuilder: Notification.Builder =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val notificationChannel = NotificationChannel(
+                    getString(R.string.notification_channel_id),
+                    getString(R.string.notification_channel_name),
+                    NotificationManager.IMPORTANCE_DEFAULT
+                )
+                val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.createNotificationChannel(notificationChannel)
+                Notification.Builder(this, getString(R.string.notification_channel_id))
+            } else {
+                Notification.Builder(this)
+            }
+        val pendingIntent: PendingIntent =
+            Intent(this, MainActivity::class.java).let{ notificationIntent ->
+                PendingIntent.getActivity(this, 0, notificationIntent, 0)
+            }
+        return notificationBuilder
+            .setContentTitle(getString(R.string.notification_title))
+            .setContentText(getString(R.string.notification_message))
+            .setContentIntent(pendingIntent)
+            .build()
+    }
+
 
 
 

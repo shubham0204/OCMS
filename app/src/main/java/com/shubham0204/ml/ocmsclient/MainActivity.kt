@@ -1,11 +1,15 @@
 package com.shubham0204.ml.ocmsclient
 
 import android.Manifest
+import android.app.AppOpsManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
+import android.os.*
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -16,18 +20,16 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shubham0204.ml.ocmsclient.databinding.ActivityMainBinding
-import android.app.AppOpsManager
-import android.os.*
-import com.google.firebase.database.FirebaseDatabase
 
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var viewBinding : ActivityMainBinding
-    private val handler = Handler( Looper.getMainLooper() )
     private lateinit var onScreenAppListener : OnScreenAppListener
+    private lateinit var onScreenStatusListener: OnScreenStatusListener
     private val userID = "shubham_panchal"
     private lateinit var firebaseDBManager: FirebaseDBManager
+    private lateinit var foregroundAppServiceIntent : Intent
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         viewBinding = ActivityMainBinding.inflate( layoutInflater )
         setContentView( viewBinding.root )
 
-        // foregroundAppListener = ForegroundAppListener( this )
+        onScreenAppListener = OnScreenAppListener( this )
 
         /*if ( checkCameraPermission() ) {
             startCameraPreview()
@@ -44,22 +46,29 @@ class MainActivity : AppCompatActivity() {
             requestCameraPermission()
         }*/
 
-        // lifecycle.addObserver( lifecycleEventObserver )
+        lifecycle.addObserver( lifecycleEventObserver )
 
-        //foregroundAppListener.getForegroundApp()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val userManager = getSystemService( Context.USER_SERVICE ) as UserManager
+            if ( userManager.isUserUnlocked ) {
+                // Access usage history ...
+            }
+        }
+
+        onScreenAppListener.getForegroundApp()
         firebaseDBManager = FirebaseDBManager( userID )
-           
-        val ref = database.reference.child( "world" ).push()
-        ref.setValue( "hello" )
-            .addOnFailureListener {
-                Log.e( "APP" , it.message!! )
+        onScreenStatusListener = OnScreenStatusListener( lifecycle , activityLifecycleCallback )
+
+        if ( checkUsageStatsPermission() ) {
+            // Implement further app logic here ...
+        }
+        else {
+            Intent( Settings.ACTION_USAGE_ACCESS_SETTINGS ).apply {
+                startActivity( this )
             }
-            .addOnSuccessListener {
-                Log.e( "APP" , "success" )
-            }
-            .addOnCanceledListener {
-                Log.e( "APP" , "cancelled" )
-            }
+        }
+
+
 
 
     }
@@ -68,47 +77,31 @@ class MainActivity : AppCompatActivity() {
 
         override fun inForeground(secondsSinceBackground: Int?) {
             firebaseDBManager.updateOnScreenStatus( true )
+            if ( this@MainActivity::foregroundAppServiceIntent.isInitialized ) {
+                stopService( foregroundAppServiceIntent )
+            }
         }
 
         override fun inBackground() {
             firebaseDBManager.updateOnScreenStatus( false )
+            foregroundAppServiceIntent = Intent( this@MainActivity , ForegroundAppService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService( foregroundAppServiceIntent )
+            }
+            else {
+                startService( foregroundAppServiceIntent )
+            }
         }
 
     }
 
-    private fun scheduleCheck() {
-        handler.postDelayed( runnable , 5000 )
-    }
-
-    private val runnable = Runnable() {
-        onScreenAppListener.getForegroundApp()
-        scheduleCheck()
-    }
 
     private val lifecycleEventObserver = LifecycleEventObserver { source, event ->
         if (event == Lifecycle.Event.ON_RESUME ) {
             Log.e( "APP" , "resumed" )
         }
         else if ( event == Lifecycle.Event.ON_PAUSE ) {
-            Log.e( "APP" , "paused" )
-            //scheduleCheck()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(
-                    Intent( this, ForegroundAppService::class.java) )
-            }
-            else {
-                startService( Intent( this, ForegroundAppService::class.java) )
-            }
-            /*Handler( Looper.getMainLooper() ).postDelayed( Runnable {
-                val activityManager = getSystemService( Context.ACTIVITY_SERVICE ) as ActivityManager
-                for ( process in activityManager.getRunningTasks() ) {
-                    Log.e( "APP" , process.processName )
-                    if ( process.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND ) {
-                        Log.e( "APP" , process.processName )
-                    }
-                }
 
-            } , 5000 )*/
         }
     }
 
@@ -186,3 +179,4 @@ class MainActivity : AppCompatActivity() {
     }
 
 }
+
