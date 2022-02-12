@@ -53,7 +53,8 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0-native-mt'
 
     implementation platform('com.google.firebase:firebase-bom:29.0.4')
-    //implementation 'com.google.firebase:firebase-analytics-ktx'
+    implementation 'com.google.firebase:firebase-analytics-ktx'
+    implementation 'com.google.mlkit:face-detection:16.1.4'
     implementation 'com.google.firebase:firebase-database-ktx'
 
     testImplementation 'junit:junit:4.+'

@@ -1,9 +1,11 @@
 package com.shubham0204.ml.ocmsclient
 
 import android.Manifest
+import android.app.ActivityManager
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.*
 import android.provider.Settings
@@ -32,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var frameAnalyzer: FrameAnalyzer
     private lateinit var firebaseDBManager: FirebaseDBManager
     private lateinit var foregroundAppServiceIntent : Intent
+    private lateinit var sharedPreferences: SharedPreferences
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +44,7 @@ class MainActivity : AppCompatActivity() {
 
         onScreenAppListener = OnScreenAppListener( this )
 
-        frameAnalyzer = FrameAnalyzer()
+
 
         if ( checkCameraPermission() ) {
             startCameraPreview()
@@ -53,6 +56,8 @@ class MainActivity : AppCompatActivity() {
 
         onScreenAppListener.getForegroundApp()
         firebaseDBManager = FirebaseDBManager( userID )
+        frameAnalyzer = FrameAnalyzer( firebaseDBManager )
+        sharedPreferences = getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
         onScreenStatusListener = OnScreenStatusListener( lifecycle , activityLifecycleCallback )
 
         if ( checkUsageStatsPermission() ) {
@@ -69,14 +74,14 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+
     private val activityLifecycleCallback = object : OnScreenStatusListener.Callback {
 
         override fun inForeground(secondsSinceBackground: Int?) {
             firebaseDBManager.updateOnScreenStatus( true )
             notifyCameraAudioPermissionStatus()
-            if ( this@MainActivity::foregroundAppServiceIntent.isInitialized ) {
-                Log.e( "APP" , "stopped" )
-                stopService( foregroundAppServiceIntent )
+            if ( sharedPreferences.getBoolean( getString( R.string.service_running_status_key ) , false ) ) {
+                stopService( Intent( this@MainActivity , ForegroundAppService::class.java) )
             }
         }
 
@@ -150,15 +155,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkCameraPermission() : Boolean {
-        return ActivityCompat.checkSelfPermission( this , Manifest.permission.CAMERA ) ==
+    private fun checkCameraPermission() : Boolean = checkSelfPermission( Manifest.permission.CAMERA ) ==
                 PackageManager.PERMISSION_GRANTED
-    }
 
-    private fun checkAudioPermission() : Boolean {
-        return ActivityCompat.checkSelfPermission( this , Manifest.permission.RECORD_AUDIO ) ==
+    private fun checkAudioPermission() : Boolean = ActivityCompat.checkSelfPermission( this , Manifest.permission.RECORD_AUDIO ) ==
                 PackageManager.PERMISSION_GRANTED
-    }
 
     private fun startCameraPreview() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance( this )
@@ -166,7 +167,7 @@ class MainActivity : AppCompatActivity() {
             val cameraProvider = cameraProviderFuture.get()
             val preview : Preview = Preview.Builder().build()
             val cameraSelector : CameraSelector = CameraSelector.Builder()
-                .requireLensFacing( CameraSelector.LENS_FACING_BACK )
+                .requireLensFacing( CameraSelector.LENS_FACING_FRONT )
                 .build()
             preview.setSurfaceProvider( viewBinding.cameraPreviewview.surfaceProvider )
             val imageFrameAnalysis = ImageAnalysis.Builder()

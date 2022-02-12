@@ -17,6 +17,8 @@ class FirebaseDBManager( userID : String ) {
     private val CAMERA_PERMISSION_STATUS = "camera_status"
     private val AUDIO_PERMISSION_STATUS = "audio_status"
     private val USAGE_STATS_PERMISSION_STATUS = "usage_status"
+    private val LOCATION_STATUS = "location"
+    private val PRESENCE_STATUS = "presence"
 
 
     fun updateOnScreenStatus( status : Boolean ) {
@@ -75,6 +77,30 @@ class FirebaseDBManager( userID : String ) {
                 Log.e( "App" , "exception ${exception.message}" )
             }
     }
+
+    fun updatePresenceStatus( status : String ) {
+        userDBReference.child( PRESENCE_STATUS )
+            .setValue( status )
+            .addOnSuccessListener {
+                Log.e( "App" , "updated" )
+            }
+            .addOnFailureListener { exception ->
+                Log.e( "App" , "exception ${exception.message}" )
+            }
+    }
+
+    fun updateLocationStatus( localityName : String ) {
+        userDBReference.child( LOCATION_STATUS )
+            .setValue( localityName )
+            .addOnSuccessListener {
+                Log.e( "App" , "updated" )
+            }
+            .addOnFailureListener { exception ->
+                Log.e( "App" , "exception ${exception.message}" )
+            }
+    }
+
+
 
 
 

@@ -5,5 +5,6 @@
     <string name="notification_channel_name">OCMS</string>
     <string name="notification_title">Title</string>
     <string name="notification_message">Text</string>
-    
+
+    <string name="service_running_status_key">service_running_status</string>
 </resources>

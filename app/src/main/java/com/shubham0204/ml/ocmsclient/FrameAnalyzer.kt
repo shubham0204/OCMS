@@ -7,23 +7,49 @@ import android.os.Looper
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetectorOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
-class FrameAnalyzer : ImageAnalysis.Analyzer {
+class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageAnalysis.Analyzer {
 
-
+    private val realTimeOpts = FaceDetectorOptions.Builder()
+        .setPerformanceMode( FaceDetectorOptions.PERFORMANCE_MODE_FAST )
+        .build()
+    private val detector = FaceDetection.getClient(realTimeOpts)
     private lateinit var currentFrameImage : ImageProxy
-    private val isProcessing = false
+    private var isProcessing = false
 
 
     override fun analyze(image: ImageProxy) {
         Log.e( "APP" , "started" )
         currentFrameImage = image
-        if ( isProcessing ) {
+        if ( !isProcessing ) {
+            isProcessing = true
+            val inputImage = InputImage.fromMediaImage( image.image!! , image.imageInfo.rotationDegrees )
+            detector.process( inputImage )
+                .addOnSuccessListener { faces ->
+                    if ( faces.size != 0 ) {
+                        firebaseDBManager.updatePresenceStatus( "Present" )
+                    }
+                    else {
+                        firebaseDBManager.updatePresenceStatus( "Absent" )
+                    }
+                }
+                .addOnFailureListener {  exception ->
+
+                }
+                .addOnCompleteListener {
+                    isProcessing = false
+                    currentFrameImage.close()
+                }
+        }
+        else {
             currentFrameImage.close()
         }
     }

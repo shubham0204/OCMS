@@ -17,6 +17,10 @@ class ForegroundAppService() : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
+            .edit()
+            .putBoolean( getString( R.string.service_running_status_key ) , true )
+            .apply()
         firebaseDBManager = FirebaseDBManager( "shubham_panchal" )
     }
 
@@ -66,6 +70,14 @@ class ForegroundAppService() : Service() {
             .setContentText(getString(R.string.notification_message))
             .setContentIntent(pendingIntent)
             .build()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
+            .edit()
+            .putBoolean( getString( R.string.service_running_status_key ) , true )
+            .apply()
     }
 
 
