@@ -13,7 +13,7 @@ class OnScreenStatusListener(
     private var timeWhenBackground = 0L
     private var userInBackgroundThreshold = 5000L
 
-    public interface Callback {
+    interface Callback {
         fun inForeground( secondsSinceBackground : Int? )
         fun inBackground()
     }

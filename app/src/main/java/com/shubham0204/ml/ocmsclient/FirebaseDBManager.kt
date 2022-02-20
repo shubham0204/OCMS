@@ -19,6 +19,7 @@ class FirebaseDBManager( userID : String ) {
     private val USAGE_STATS_PERMISSION_STATUS = "usage_status"
     private val LOCATION_STATUS = "location"
     private val PRESENCE_STATUS = "presence"
+    private val NOTIFICATION_ACCESS_PERMISSION_STATUS = "notification_access"
 
 
     fun updateOnScreenStatus( status : Boolean ) {
@@ -37,6 +38,17 @@ class FirebaseDBManager( userID : String ) {
         Log.e( "APP" , "called 2" )
         userDBReference.child( ON_SCREEN_APP )
             .setValue( appName )
+            .addOnSuccessListener {
+                Log.e( "App" , "updated" )
+            }
+            .addOnFailureListener { exception ->
+                Log.e( "App" , "exception ${exception.message}" )
+            }
+    }
+
+    fun updateNotificationAccessPermissionStatus( isEnabled: Boolean ) {
+        userDBReference.child( NOTIFICATION_ACCESS_PERMISSION_STATUS )
+            .setValue( isEnabled )
             .addOnSuccessListener {
                 Log.e( "App" , "updated" )
             }

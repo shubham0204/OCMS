@@ -1,15 +1,16 @@
 package com.shubham0204.ml.ocmsclient
 
 import android.Manifest
-import android.app.ActivityManager
 import android.app.AppOpsManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.Process
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.AspectRatio
@@ -17,9 +18,8 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.*
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.shubham0204.ml.ocmsclient.databinding.ActivityMainBinding
 import java.util.concurrent.Executors
@@ -33,8 +33,8 @@ class MainActivity : AppCompatActivity() {
     private val userID = "shubham_panchal"
     private lateinit var frameAnalyzer: FrameAnalyzer
     private lateinit var firebaseDBManager: FirebaseDBManager
-    private lateinit var foregroundAppServiceIntent : Intent
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var notificationManager : NotificationManager
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        onScreenAppListener.getForegroundApp()
         firebaseDBManager = FirebaseDBManager( userID )
         frameAnalyzer = FrameAnalyzer( firebaseDBManager )
         sharedPreferences = getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
@@ -70,16 +69,27 @@ class MainActivity : AppCompatActivity() {
         }
 
 
+     /*   notificationManager = getSystemService( Context.NOTIFICATION_SERVICE ) as NotificationManager
+        if ( checkNotificationAccessPermission() ) {
+            notificationManager.setInterruptionFilter( NotificationManager.INTERRUPTION_FILTER_NONE )
+        }
+        else {
+            Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).apply {
+                startActivity( this )
+            }
+        }*/
 
 
     }
+
+
 
 
     private val activityLifecycleCallback = object : OnScreenStatusListener.Callback {
 
         override fun inForeground(secondsSinceBackground: Int?) {
             firebaseDBManager.updateOnScreenStatus( true )
-            notifyCameraAudioPermissionStatus()
+            notifyPermissionsStatus()
             if ( sharedPreferences.getBoolean( getString( R.string.service_running_status_key ) , false ) ) {
                 stopService( Intent( this@MainActivity , ForegroundAppService::class.java) )
             }
@@ -87,7 +97,7 @@ class MainActivity : AppCompatActivity() {
 
         override fun inBackground() {
             firebaseDBManager.updateOnScreenStatus( false )
-            foregroundAppServiceIntent = Intent( this@MainActivity , ForegroundAppService::class.java)
+            val foregroundAppServiceIntent = Intent( this@MainActivity , ForegroundAppService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService( foregroundAppServiceIntent )
             }
@@ -98,7 +108,14 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-
+    // Notify FirebaseDBManager regarding any changes in camera, audio or usage stats permissions.
+    // This method is called everytime the visibility of the app changes.
+    private fun notifyPermissionsStatus() = firebaseDBManager.apply {
+        updateCameraPermissionStatus( checkCameraPermission() )
+        updateAudioPermissionStatus( checkAudioPermission() )
+        updateAppUsagePermissionStatus( checkUsageStatsPermission() )
+        updateNotificationAccessPermissionStatus( checkNotificationAccessPermission() )
+    }
 
     // The `PACKAGE_USAGE_STATS` permission is a not a runtime permission and hence cannot be
     // requested directly using `ActivityCompat.requestPermissions`. All special permissions
@@ -121,11 +138,19 @@ class MainActivity : AppCompatActivity() {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
-    private fun notifyCameraAudioPermissionStatus() {
-        firebaseDBManager.updateCameraPermissionStatus( checkUsageStatsPermission() )
-        firebaseDBManager.updateAudioPermissionStatus( checkAudioPermission() )
+    // Check if the permission for Do Not Disturb is enabled
+    // See this SO answer -> https://stackoverflow.com/a/36162332/13546426
+    private fun checkNotificationAccessPermission() : Boolean {
+        return notificationManager.isNotificationPolicyAccessGranted
     }
 
+    // Check if the camera permission has been granted by the user.
+    private fun checkCameraPermission() : Boolean = checkSelfPermission( Manifest.permission.CAMERA ) ==
+            PackageManager.PERMISSION_GRANTED
+
+    // Check if the audio permission has been granted by the user.
+    private fun checkAudioPermission() : Boolean = checkSelfPermission( Manifest.permission.RECORD_AUDIO ) ==
+            PackageManager.PERMISSION_GRANTED
 
     private fun requestCameraPermission() {
         cameraPermissionRequestLauncher.launch( Manifest.permission.CAMERA )
@@ -154,12 +179,6 @@ class MainActivity : AppCompatActivity() {
             alertDialog.show()
         }
     }
-
-    private fun checkCameraPermission() : Boolean = checkSelfPermission( Manifest.permission.CAMERA ) ==
-                PackageManager.PERMISSION_GRANTED
-
-    private fun checkAudioPermission() : Boolean = ActivityCompat.checkSelfPermission( this , Manifest.permission.RECORD_AUDIO ) ==
-                PackageManager.PERMISSION_GRANTED
 
     private fun startCameraPreview() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance( this )

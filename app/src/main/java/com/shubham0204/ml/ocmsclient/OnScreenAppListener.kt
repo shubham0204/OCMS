@@ -7,10 +7,12 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.util.Log
 
+// Checks which app is running in foreground currently.
+// It is used with the ForegroundAppService to periodically check which app is visible currently on the
+// user's screen
 class OnScreenAppListener(private var context: Context ) {
 
-    private var usageStatsManager : UsageStatsManager =
-        context.getSystemService( Context.USAGE_STATS_SERVICE ) as UsageStatsManager
+    private var usageStatsManager : UsageStatsManager = context.getSystemService( Context.USAGE_STATS_SERVICE ) as UsageStatsManager
     private var packageManager : PackageManager = context.packageManager
     private var nonSystemAppInfoMap : Map<String,String>
 
@@ -30,7 +32,6 @@ class OnScreenAppListener(private var context: Context ) {
         val usageEvent = UsageEvents.Event()
         while ( usageEvents.hasNextEvent() ) {
             usageEvents.getNextEvent( usageEvent )
-            Log.e( "APP" , "${usageEvent.packageName} ${usageEvent.timeStamp}" )
             if ( usageEvent.eventType == UsageEvents.Event.ACTIVITY_RESUMED ) {
                 foregroundAppPackageName =
                     if ( nonSystemAppInfoMap.containsKey( usageEvent.packageName ) ) {
@@ -44,11 +45,15 @@ class OnScreenAppListener(private var context: Context ) {
         return foregroundAppPackageName
     }
 
+    // We only need non-system apps which were accessed by the user. The Map returned by this method
+    // is used to filter the usage history.
     private fun getNonSystemAppsList() : Map<String,String> {
+        // TODO : Check getInstalledApplications limitation here
         // https://medium.com/androiddevelopers/package-visibility-in-android-11-cc857f221cd9
         val appInfos = packageManager.getInstalledApplications( PackageManager.GET_META_DATA )
         val appInfoMap = HashMap<String,String>()
         for ( appInfo in appInfos ) {
+            // See this SO answer to check if a app is a system app ->
             // https://stackoverflow.com/a/8483920/13546426
             if ( appInfo.flags != ApplicationInfo.FLAG_SYSTEM ) {
                 appInfoMap[ appInfo.packageName ]= packageManager.getApplicationLabel( appInfo ).toString()

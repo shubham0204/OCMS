@@ -8,7 +8,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 
-class ForegroundAppService() : Service() {
+class ForegroundAppService : Service() {
 
     private val handler = Handler( Looper.getMainLooper() )
     private lateinit var onScreenAppListener : OnScreenAppListener
