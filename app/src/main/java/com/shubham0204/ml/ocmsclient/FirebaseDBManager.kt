@@ -6,9 +6,8 @@ import com.google.firebase.database.FirebaseDatabase
 
 class FirebaseDBManager( userID : String ) {
 
-    private val firebaseDatabaseURL = "https://ocms-12aea-default-rtdb.firebaseio.com"
     private var userDBReference : DatabaseReference = FirebaseDatabase
-        .getInstance( firebaseDatabaseURL )
+        .getInstance()
         .reference
         .child( userID )
 

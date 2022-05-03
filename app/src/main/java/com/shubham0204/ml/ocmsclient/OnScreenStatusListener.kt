@@ -7,7 +7,7 @@ import androidx.lifecycle.LifecycleObserver
 import kotlin.math.roundToInt
 
 class OnScreenStatusListener(
-    activityLifecycle : Lifecycle ,
+    private var activityLifecycle : Lifecycle ,
     callback : Callback ) : LifecycleObserver {
 
     private var timeWhenBackground = 0L
@@ -16,6 +16,10 @@ class OnScreenStatusListener(
     interface Callback {
         fun inForeground( secondsSinceBackground : Int? )
         fun inBackground()
+    }
+
+    fun removeObserver() {
+        activityLifecycle.removeObserver( lifecycleEventObserver )
     }
 
     private val lifecycleEventObserver = LifecycleEventObserver { _, event ->

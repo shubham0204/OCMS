@@ -7,6 +7,9 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.util.Log
 
+// on_screen_app goes blank android 10 MIUI 12.0.3
+
+
 // Checks which app is running in foreground currently.
 // It is used with the ForegroundAppService to periodically check which app is visible currently on the
 // user's screen

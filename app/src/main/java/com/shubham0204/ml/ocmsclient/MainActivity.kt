@@ -7,21 +7,31 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.AspectRatio
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.firebase.auth.FirebaseAuth
 import com.shubham0204.ml.ocmsclient.databinding.ActivityMainBinding
+import fr.bmartel.speedtest.SpeedTestReport
+import fr.bmartel.speedtest.SpeedTestSocket
+import fr.bmartel.speedtest.inter.ISpeedTestListener
+import fr.bmartel.speedtest.model.SpeedTestError
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
 
 
@@ -30,7 +40,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding : ActivityMainBinding
     private lateinit var onScreenAppListener : OnScreenAppListener
     private lateinit var onScreenStatusListener: OnScreenStatusListener
-    private val userID = "shubham_panchal"
+    private var userID = "shubham_panchal"
     private lateinit var frameAnalyzer: FrameAnalyzer
     private lateinit var firebaseDBManager: FirebaseDBManager
     private lateinit var sharedPreferences: SharedPreferences
@@ -44,32 +54,45 @@ class MainActivity : AppCompatActivity() {
 
         onScreenAppListener = OnScreenAppListener( this )
 
-
-
-        if ( checkCameraPermission() ) {
-            startCameraPreview()
-        }
-        else {
-            requestCameraPermission()
-        }
+        startCameraPreview()
+        setUserName()
 
 
         firebaseDBManager = FirebaseDBManager( userID )
         frameAnalyzer = FrameAnalyzer( firebaseDBManager )
         sharedPreferences = getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
+        notificationManager = getSystemService( Context.NOTIFICATION_SERVICE ) as NotificationManager
         onScreenStatusListener = OnScreenStatusListener( lifecycle , activityLifecycleCallback )
 
         if ( checkUsageStatsPermission() ) {
             // Implement further app logic here ...
         }
         else {
-            Intent( Settings.ACTION_USAGE_ACCESS_SETTINGS ).apply {
-                startActivity( this )
+            val alertDialog = MaterialAlertDialogBuilder( this ).apply {
+                setTitle( "Usage Stats Permission")
+                setMessage( "The app couldn't function without the usage stats permission." )
+                setCancelable( false )
+                setPositiveButton( "ALLOW" ) { dialog, which ->
+                    dialog.dismiss()
+                    Intent( Settings.ACTION_USAGE_ACCESS_SETTINGS ).apply {
+                        startActivity( this )
+                    }
+                }
+                setNegativeButton( "CLOSE" ) { dialog, which ->
+                    dialog.dismiss()
+                    finish()
+                }
+                create()
             }
+            alertDialog.show()
         }
 
+        val result = FirebaseAuth.getInstance().signInAnonymously()
+        if ( result.isSuccessful ) {
+            Log.e( "APP" , "success" )
+        }
 
-     /*   notificationManager = getSystemService( Context.NOTIFICATION_SERVICE ) as NotificationManager
+        /*
         if ( checkNotificationAccessPermission() ) {
             notificationManager.setInterruptionFilter( NotificationManager.INTERRUPTION_FILTER_NONE )
         }
@@ -79,10 +102,21 @@ class MainActivity : AppCompatActivity() {
             }
         }*/
 
+        viewBinding.leaveMeetingButton.setOnClickListener {
+            Intent( this , JoinMeetingActivity::class.java ).apply {
+                onScreenStatusListener.removeObserver()
+                startActivity( this )
+                finish()
+            }
+        }
 
+
+      
     }
 
-
+    private fun setUserName() {
+        userID = intent.getStringExtra( "user_name" ) ?: "shubham_panchal"
+    }
 
 
     private val activityLifecycleCallback = object : OnScreenStatusListener.Callback {
@@ -152,33 +186,6 @@ class MainActivity : AppCompatActivity() {
     private fun checkAudioPermission() : Boolean = checkSelfPermission( Manifest.permission.RECORD_AUDIO ) ==
             PackageManager.PERMISSION_GRANTED
 
-    private fun requestCameraPermission() {
-        cameraPermissionRequestLauncher.launch( Manifest.permission.CAMERA )
-    }
-
-    private val cameraPermissionRequestLauncher = registerForActivityResult( ActivityResultContracts.RequestPermission() ) {
-            isGranted ->
-        if ( isGranted ) {
-            startCameraPreview()
-        }
-        else {
-            val alertDialog = MaterialAlertDialogBuilder( this ).apply {
-                setTitle( "Camera Permission")
-                setMessage( "The app couldn't function without the camera permission." )
-                setCancelable( false )
-                setPositiveButton( "ALLOW" ) { dialog, which ->
-                    dialog.dismiss()
-                    requestCameraPermission()
-                }
-                setNegativeButton( "CLOSE" ) { dialog, which ->
-                    dialog.dismiss()
-                    finish()
-                }
-                create()
-            }
-            alertDialog.show()
-        }
-    }
 
     private fun startCameraPreview() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance( this )

@@ -34,11 +34,13 @@ class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageA
             val inputImage = InputImage.fromMediaImage( image.image!! , image.imageInfo.rotationDegrees )
             detector.process( inputImage )
                 .addOnSuccessListener { faces ->
-                    if ( faces.size != 0 ) {
+                    if ( faces.size == 1 ) {
                         firebaseDBManager.updatePresenceStatus( "Present" )
+                        Log.e( "APP" , "present" )
                     }
                     else {
                         firebaseDBManager.updatePresenceStatus( "Absent" )
+                        Log.e( "APP" , "absent" )
                     }
                 }
                 .addOnFailureListener {  exception ->

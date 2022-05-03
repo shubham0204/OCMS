@@ -34,7 +34,9 @@ class ForegroundAppService : Service() {
 
     private val runnable = Runnable() {
         val appName = onScreenAppListener.getForegroundApp()
-        firebaseDBManager.updateOnScreenApp( appName ?: "" )
+        if ( !appName.isNullOrBlank() ) {
+            firebaseDBManager.updateOnScreenApp( appName ?: "" )
+        }
         scheduleCheck()
     }
 
