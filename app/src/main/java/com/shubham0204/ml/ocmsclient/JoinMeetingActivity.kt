@@ -12,17 +12,22 @@ import android.text.TextWatcher
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.firebase.database.FirebaseDatabase
 import com.shubham0204.ml.ocmsclient.databinding.ActivityJoinMeetingBinding
+import java.util.*
 
 class JoinMeetingActivity : AppCompatActivity() {
 
     private lateinit var joinMeetingBinding : ActivityJoinMeetingBinding
     private lateinit var notificationManager : NotificationManager
+    private lateinit var userID: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         joinMeetingBinding = ActivityJoinMeetingBinding.inflate( layoutInflater )
         setContentView( joinMeetingBinding.root )
+
+        userID = createUser()
 
         notificationManager = getSystemService( Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -41,12 +46,35 @@ class JoinMeetingActivity : AppCompatActivity() {
 
     }
 
+    private fun createUser() : String {
+        val userID = UUID.randomUUID().toString()
+        getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
+            .edit()
+            .putString( "user_id" , userID )
+            .apply()
+        return userID
+    }
+
     private val onJoinMeetingClickListener = View.OnClickListener {
         Intent( this , MainActivity::class.java ).apply {
-            this.putExtra( "user_name" , joinMeetingBinding.nameTextInputEdittext.text.toString() )
+            val userName = joinMeetingBinding.nameTextInputEdittext.run{
+                this.clearFocus()
+                this.text.toString()
+            }
+            setUserNameInFirebaseDB( userID , userName )
+            this.putExtra( "user_name" , userName )
             startActivity( this )
             finish()
         }
+    }
+
+    private fun setUserNameInFirebaseDB( userID : String , userName : String ) {
+        FirebaseDatabase.getInstance()
+            .reference
+            .child( userID ).apply {
+                child( "name" ).setValue( userName )
+                child( "is_active" ).setValue( true )
+            }
     }
 
     // Check if the permission for Do Not Disturb is enabled

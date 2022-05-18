@@ -21,7 +21,7 @@ class ForegroundAppService : Service() {
             .edit()
             .putBoolean( getString( R.string.service_running_status_key ) , true )
             .apply()
-        firebaseDBManager = FirebaseDBManager( "shubham_panchal" )
+        firebaseDBManager = FirebaseDBManager( this )
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -65,7 +65,7 @@ class ForegroundAppService : Service() {
             }
         val pendingIntent: PendingIntent =
             Intent(this, MainActivity::class.java).let{ notificationIntent ->
-                PendingIntent.getActivity(this, 0, notificationIntent, 0)
+                PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE )
             }
         return notificationBuilder
             .setContentTitle(getString(R.string.notification_title))

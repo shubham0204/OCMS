@@ -15,6 +15,7 @@ import android.provider.Settings
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.util.Log
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -40,11 +41,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding : ActivityMainBinding
     private lateinit var onScreenAppListener : OnScreenAppListener
     private lateinit var onScreenStatusListener: OnScreenStatusListener
-    private var userID = "shubham_panchal"
     private lateinit var frameAnalyzer: FrameAnalyzer
     private lateinit var firebaseDBManager: FirebaseDBManager
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var notificationManager : NotificationManager
+    private lateinit var cameraProvider: ProcessCameraProvider
+    private var isCameraOn = false
+    private lateinit var previewUseCase : UseCase
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,16 +56,13 @@ class MainActivity : AppCompatActivity() {
         setContentView( viewBinding.root )
 
         onScreenAppListener = OnScreenAppListener( this )
-
-        startCameraPreview()
-        setUserName()
-
-
-        firebaseDBManager = FirebaseDBManager( userID )
+        firebaseDBManager = FirebaseDBManager( this )
         frameAnalyzer = FrameAnalyzer( firebaseDBManager )
         sharedPreferences = getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
         notificationManager = getSystemService( Context.NOTIFICATION_SERVICE ) as NotificationManager
         onScreenStatusListener = OnScreenStatusListener( lifecycle , activityLifecycleCallback )
+
+        startCameraPreview()
 
         if ( checkUsageStatsPermission() ) {
             // Implement further app logic here ...
@@ -102,20 +102,14 @@ class MainActivity : AppCompatActivity() {
             }
         }*/
 
-        viewBinding.leaveMeetingButton.setOnClickListener {
-            Intent( this , JoinMeetingActivity::class.java ).apply {
-                onScreenStatusListener.removeObserver()
-                startActivity( this )
-                finish()
-            }
+        viewBinding.leaveMeetingButton.setOnClickListener { leaveMeeting() }
+
+        viewBinding.cameraPreviewview.setOnClickListener {
+            if ( isCameraOn ) stopCameraPreview() else startCameraPreview()
         }
 
 
       
-    }
-
-    private fun setUserName() {
-        userID = intent.getStringExtra( "user_name" ) ?: "shubham_panchal"
     }
 
 
@@ -132,14 +126,43 @@ class MainActivity : AppCompatActivity() {
         override fun inBackground() {
             firebaseDBManager.updateOnScreenStatus( false )
             val foregroundAppServiceIntent = Intent( this@MainActivity , ForegroundAppService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService( foregroundAppServiceIntent )
-            }
-            else {
-                startService( foregroundAppServiceIntent )
+            if ( checkUsageStatsPermission() ) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(foregroundAppServiceIntent)
+                }
+                else {
+                    startService( foregroundAppServiceIntent )
+                }
             }
         }
 
+    }
+
+    override fun onBackPressed() {
+        val alertDialog = MaterialAlertDialogBuilder( this ).apply {
+            setTitle( "Leave Meeting")
+            setMessage( "Are you sure you want to leave the meeting?" )
+            setCancelable( false )
+            setPositiveButton( "LEAVE" ) { dialog, which ->
+                dialog.dismiss()
+                leaveMeeting()
+            }
+            setNegativeButton( "CLOSE" ) { dialog, which ->
+                dialog.dismiss()
+            }
+            create()
+        }
+        alertDialog.show()
+    }
+
+    private fun leaveMeeting() {
+        onScreenStatusListener.removeObserver()
+        cameraProvider.unbindAll()
+        firebaseDBManager.updateMeetingStatus()
+        Intent( this , JoinMeetingActivity::class.java ).apply {
+            startActivity( this )
+            finish()
+        }
     }
 
     // Notify FirebaseDBManager regarding any changes in camera, audio or usage stats permissions.
@@ -186,11 +209,17 @@ class MainActivity : AppCompatActivity() {
     private fun checkAudioPermission() : Boolean = checkSelfPermission( Manifest.permission.RECORD_AUDIO ) ==
             PackageManager.PERMISSION_GRANTED
 
+    private fun stopCameraPreview() {
+        Log.e( "APP" , "Camera stopped" )
+        cameraProvider.unbind( previewUseCase )
+        isCameraOn = false
+    }
 
     private fun startCameraPreview() {
+        Log.e( "APP" , "Camera started" )
         val cameraProviderFuture = ProcessCameraProvider.getInstance( this )
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+            cameraProvider = cameraProviderFuture.get()
             val preview : Preview = Preview.Builder().build()
             val cameraSelector : CameraSelector = CameraSelector.Builder()
                 .requireLensFacing( CameraSelector.LENS_FACING_FRONT )
@@ -201,7 +230,9 @@ class MainActivity : AppCompatActivity() {
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
             imageFrameAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), frameAnalyzer )
+            previewUseCase = preview
             cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview , imageFrameAnalysis )
+            isCameraOn = true
         }, ContextCompat.getMainExecutor(this) )
     }
 
