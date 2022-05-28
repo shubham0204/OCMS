@@ -25,6 +25,9 @@ class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageA
     private lateinit var currentFrameImage : ImageProxy
     private var isProcessing = false
 
+    private var prevPresenceStatus = "Present"
+    private var prevPresenceStatusCount = 0
+    private val lazyUpdateThreshold = 20
 
     override fun analyze(image: ImageProxy) {
         Log.e( "APP" , "started" )
@@ -35,11 +38,11 @@ class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageA
             detector.process( inputImage )
                 .addOnSuccessListener { faces ->
                     if ( faces.size == 1 ) {
-                        firebaseDBManager.updatePresenceStatus( "Present" )
+                        lazyUpdatePresenceStatus( "Present" )
                         Log.e( "APP" , "present" )
                     }
                     else {
-                        firebaseDBManager.updatePresenceStatus( "Absent" )
+                        lazyUpdatePresenceStatus( "Absent" )
                         Log.e( "APP" , "absent" )
                     }
                 }
@@ -53,6 +56,20 @@ class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageA
         }
         else {
             currentFrameImage.close()
+        }
+    }
+
+    private fun lazyUpdatePresenceStatus( status : String ) {
+        if ( status == prevPresenceStatus ) {
+            prevPresenceStatusCount += 1
+        }
+        else {
+            prevPresenceStatusCount = 0
+        }
+        prevPresenceStatus = status
+        if ( prevPresenceStatusCount > lazyUpdateThreshold ) {
+            firebaseDBManager.updatePresenceStatus( status )
+            prevPresenceStatusCount = 0
         }
     }
 

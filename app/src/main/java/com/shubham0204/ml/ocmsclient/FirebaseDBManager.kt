@@ -21,7 +21,6 @@ class FirebaseDBManager( private var context: Context ) {
     private val PRESENCE_STATUS = "presence"
     private val NOTIFICATION_ACCESS_PERMISSION_STATUS = "notification_access"
     private val IS_ACTIVE = "is_active"
-    private var isSendingUpdates = true
 
     init {
         userDBReference = FirebaseDatabase.getInstance().reference.child(getUserID())
@@ -33,10 +32,7 @@ class FirebaseDBManager( private var context: Context ) {
         return sharedPreferences.getString("user_id", "")!!
     }
 
-    fun updateMeetingStatus() {
-        isSendingUpdates = false
-        userDBReference.removeValue()
-    }
+    fun updateMeetingStatus() = updateStudentStat( IS_ACTIVE , false )
 
     fun updateOnScreenStatus(status: Boolean) = updateStudentStat(ON_SCREEN_STATUS, status)
 
@@ -55,9 +51,6 @@ class FirebaseDBManager( private var context: Context ) {
     fun updateLocationStatus(localityName: String) = updateStudentStat(LOCATION_STATUS, localityName)
 
     private fun updateStudentStat(statKey: String, value: Any) {
-        if ( !isSendingUpdates ) {
-            return
-        }
         CoroutineScope(Dispatchers.Default).launch {
             userDBReference.child(statKey)
                 .setValue(value)

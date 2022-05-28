@@ -76,6 +76,7 @@ class ForegroundAppService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        handler.removeCallbacks( runnable )
         getSharedPreferences( getString( R.string.app_name ) , Context.MODE_PRIVATE )
             .edit()
             .putBoolean( getString( R.string.service_running_status_key ) , true )

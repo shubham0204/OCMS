@@ -159,10 +159,18 @@ class MainActivity : AppCompatActivity() {
         onScreenStatusListener.removeObserver()
         cameraProvider.unbindAll()
         firebaseDBManager.updateMeetingStatus()
+        if ( sharedPreferences.getBoolean( getString( R.string.service_running_status_key ) , false ) ) {
+            stopService( Intent( this@MainActivity , ForegroundAppService::class.java) )
+        }
         Intent( this , JoinMeetingActivity::class.java ).apply {
             startActivity( this )
             finish()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        leaveMeeting()
     }
 
     // Notify FirebaseDBManager regarding any changes in camera, audio or usage stats permissions.
