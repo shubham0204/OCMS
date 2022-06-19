@@ -17,6 +17,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.lang.StringBuilder
+import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity() {
 
@@ -29,6 +30,7 @@ class MainActivity : AppCompatActivity() {
         activityMainBinding = ActivityMainBinding.inflate( layoutInflater )
         setContentView( activityMainBinding.root )
 
+        // Documentation
         val dataRepository = StudentStatsRepository( FirebaseDatabase.getInstance().reference )
         studentStatsAdapter = StudentStatsAdapter(
             this ,
@@ -37,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         )
         activityMainBinding.recyclerview.layoutManager = LinearLayoutManager( this )
         activityMainBinding.recyclerview.adapter = studentStatsAdapter
+        activityMainBinding.recyclerview.itemAnimator = null
 
         activityMainBinding.downloadReportButton.setOnClickListener{ downloadReport() }
         activityMainBinding.downloadReportButton.setOnLongClickListener{ _ ->
@@ -47,6 +50,8 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        activityMainBinding.attendanceReportButton.setOnClickListener { downloadAttendanceReport() }
+
     }
 
     private fun downloadReport() {
@@ -55,15 +60,29 @@ class MainActivity : AppCompatActivity() {
             reportBuilder.append( it.first + " " + it.second + "\n" )
         }
         reportString = reportBuilder.toString()
-        openCreateFileDialog()
+        openCreateFileDialog( "report.txt" )
     }
 
-    private fun openCreateFileDialog() {
+    private fun downloadAttendanceReport() {
+        val reportBuilder = StringBuilder()
+        val names = studentStatsAdapter.idNameMap
+        studentStatsAdapter.attendanceTimeReport.forEach{
+            reportBuilder.append( names[ it.component1() ] + " " + millisToMinutes( it.component2()[0] ) + "\n" )
+        }
+        reportString = reportBuilder.toString()
+        openCreateFileDialog( "attendance_report.txt" )
+    }
+
+    private fun millisToMinutes( millis : Long ) : Double {
+        return ( millis / ( 1e+6 ) )
+    }
+
+    private fun openCreateFileDialog( filename : String ) {
         // https://developer.android.com/training/data-storage/shared/documents-files#create-file
         val intent = Intent( Intent.ACTION_CREATE_DOCUMENT ).apply {
             addCategory( Intent.CATEGORY_OPENABLE )
             type = "text/plain"
-            putExtra( Intent.EXTRA_TITLE , "report.txt" )
+            putExtra( Intent.EXTRA_TITLE , filename )
         }
         createFileIntentLauncher.launch( intent )
     }

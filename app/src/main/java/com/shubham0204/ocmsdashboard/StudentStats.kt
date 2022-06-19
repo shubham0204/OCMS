@@ -2,6 +2,7 @@ package com.shubham0204.ocmsdashboard
 
 import com.google.firebase.database.DataSnapshot
 
+// The class that holds statistics for each student
 class StudentStats {
 
     companion object {
