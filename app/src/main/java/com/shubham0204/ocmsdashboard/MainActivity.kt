@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun millisToMinutes( millis : Long ) : Double {
-        return ( millis / ( 1e+6 ) )
+        return ( millis / ( 1000.0 * 60 ) )
     }
 
     private fun openCreateFileDialog( filename : String ) {
