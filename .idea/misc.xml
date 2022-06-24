@@ -3,10 +3,16 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/drawable/ic_report.xml" value="0.226" />
+        <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/drawable/student_stat_item_background_highlighted.xml" value="0.226" />
+        <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/drawable/student_stat_item_background_normal.xml" value="0.226" />
+        <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/drawable/summary_bottom_sheet_background.xml" value="0.226" />
+        <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/drawable/summary_count_textview_background.xml" value="0.226" />
         <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/font/app_font.xml" value="0.20859375" />
         <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/font/font.xml" value="0.278125" />
         <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/layout/activity_main.xml" value="0.264" />
         <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/layout/student_stats_item_layout.xml" value="0.264" />
+        <entry key="..\:/AndroidStudioProjects/OCMSDashboard/app/src/main/res/layout/summary_bottom_sheet_fragment.xml" value="0.264" />
       </map>
     </option>
   </component>

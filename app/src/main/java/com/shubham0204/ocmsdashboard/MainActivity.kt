@@ -1,29 +1,31 @@
 package com.shubham0204.ocmsdashboard
 
-import android.app.DownloadManager
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Environment
-import android.provider.DocumentsContract
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.net.toUri
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.database.FirebaseDatabase
 import com.shubham0204.ocmsdashboard.databinding.ActivityMainBinding
-import java.io.File
 import java.io.FileNotFoundException
-import java.io.FileOutputStream
 import java.lang.StringBuilder
-import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var activityMainBinding : ActivityMainBinding
     private lateinit var studentStatsAdapter: StudentStatsAdapter
     private lateinit var reportString : String
+    private lateinit var studentSummaryBottomSheet : SummaryBottomSheetFragment
+    private lateinit var summaryBottomSheetViewModel : SummaryBottomSheetViewModel
+    private val handler = Handler( Looper.getMainLooper() )
+    private val COUNT_UPDATE_INTERVAL = 10000L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,11 +37,17 @@ class MainActivity : AppCompatActivity() {
         studentStatsAdapter = StudentStatsAdapter(
             this ,
             dataRepository.studentStatsFlow ,
-            studentStatLongClickListener
+            studentStatInteractCallback
         )
         activityMainBinding.recyclerview.layoutManager = LinearLayoutManager( this )
         activityMainBinding.recyclerview.adapter = studentStatsAdapter
         activityMainBinding.recyclerview.itemAnimator = null
+
+        summaryBottomSheetViewModel = ViewModelProvider( this )[SummaryBottomSheetViewModel::class.java]
+
+        activityMainBinding.swipeRefreshLayout.setOnRefreshListener{
+            activityMainBinding.swipeRefreshLayout.isRefreshing = false
+        }
 
         activityMainBinding.downloadReportButton.setOnClickListener{ downloadReport() }
         activityMainBinding.downloadReportButton.setOnLongClickListener{ _ ->
@@ -51,7 +59,39 @@ class MainActivity : AppCompatActivity() {
         }
 
         activityMainBinding.attendanceReportButton.setOnClickListener { downloadAttendanceReport() }
+        studentSummaryBottomSheet = SummaryBottomSheetFragment()
+        BottomSheetBehavior.from( activityMainBinding.summarySheetContainer ).apply {
+            isHideable = false
+            peekHeight = 100
+        }
 
+        activityMainBinding.showSummaryButton.setOnClickListener {
+            studentSummaryBottomSheet.show( supportFragmentManager , SummaryBottomSheetFragment.TAG )
+        }
+
+        startCountUpdater()
+
+
+    }
+
+    private fun startCountUpdater() {
+        handler.postDelayed( countUpdateRunnable , COUNT_UPDATE_INTERVAL )
+    }
+
+    private val countUpdateRunnable = Runnable {
+        var presentStudentsCount = 0
+        var onScreenStudentsCount = 0
+        studentStatsAdapter.studentStatsList.forEach {
+            if ( it.presenceStatus == "Present" ) {
+                presentStudentsCount += 1
+            }
+            if ( it.onScreenStatus ) {
+                onScreenStudentsCount += 1
+            }
+        }
+        summaryBottomSheetViewModel.presentStudentsCount.value = presentStudentsCount
+        summaryBottomSheetViewModel.onScreenStudentsCount.value = onScreenStudentsCount
+        startCountUpdater()
     }
 
     private fun downloadReport() {
@@ -101,10 +141,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val studentStatLongClickListener = object : StudentStatsAdapter.StudentStatsInteractCallback {
+    private val studentStatInteractCallback = object : StudentStatsAdapter.StudentStatsInteractCallback {
 
-        override fun onStudentStatLongClickListener(studentStats: StudentStats) {
+        override fun onStudentStatClick(studentStats: StudentStats) {
+            TODO("Not yet implemented")
+        }
 
+        override fun onStudentStatLongClick(studentStats: StudentStats) {
+
+        }
+
+        override fun onStudentEntered(studentStats: StudentStats) {
+            Snackbar.make( activityMainBinding.root , "Entered" , Snackbar.LENGTH_SHORT ).show()
+            summaryBottomSheetViewModel.totalStudentsCount.value =
+                summaryBottomSheetViewModel.totalStudentsCount.value!! + 1
+        }
+
+        override fun onStudentLeft(studentStats: StudentStats) {
+            summaryBottomSheetViewModel.totalStudentsCount.value =
+                summaryBottomSheetViewModel.totalStudentsCount.value!! - 1
         }
 
     }

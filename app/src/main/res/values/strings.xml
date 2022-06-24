@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">OCMS Dashboard</string>
+
+    <string name="in_meeting_display">is in the meeting</string>
+    <string name="not_in_meeting_display">is not in the meeting</string>
+    <string name="on_screen_display">is now using the meeting app</string>
+    <string name="not_on_screen_display">switched to some other app</string>
+
+    <string name="show_summary_display">Show Summary</string>
+    <string name="app_title_display">Dashboard</string>
+
+    <string name="total_students_display">Total students in the meeting</string>
+    <string name="students_using_ocms_display">Students using OCMS</string>
+    <string name="students_attending_lecture_display">Students attending the lecture</string>
 </resources>

@@ -4,11 +4,11 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
@@ -19,13 +19,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
-import kotlin.collections.LinkedHashMap
 
 class StudentStatsAdapter(
     private var context: Context ,
     private var studentStatsFlow : Flow<StudentStats> ,
-    private var longClickListener : StudentStatsInteractCallback
-    ) : RecyclerView.Adapter<StudentStatsAdapter.StudentStatsViewHolder>() {
+    private var studentStatsInteractCallback : StudentStatsInteractCallback ) :
+    RecyclerView.Adapter<StudentStatsAdapter.StudentStatsViewHolder>() {
 
     private val dateFormat = SimpleDateFormat( "kk:mm dd-MM-yyyy" , Locale.getDefault() )
     val studentStatsList = ArrayList<StudentStats>()
@@ -36,7 +35,10 @@ class StudentStatsAdapter(
     var meetingStartTime = 0L
 
     interface StudentStatsInteractCallback {
-        fun onStudentStatLongClickListener( studentStats: StudentStats )
+        fun onStudentStatClick( studentStats: StudentStats )
+        fun onStudentStatLongClick(studentStats: StudentStats )
+        fun onStudentEntered( studentStats: StudentStats )
+        fun onStudentLeft( studentStats: StudentStats )
     }
 
     init {
@@ -54,12 +56,14 @@ class StudentStatsAdapter(
                         timeReport[ it.id ] = System.currentTimeMillis()
                         attendanceTimeReport[ it.id ] = longArrayOf( 0L , System.currentTimeMillis() )
                         notifyItemInserted( studentStatsList.indexOf( it ) )
+                        studentStatsInteractCallback.onStudentEntered( it )
                     }
                 }
                 else if ( !it.isActive ) {
                     val position = studentStatsList.indexOf( it )
                     studentStatsList.remove( it )
                     notifyItemRemoved( position )
+                    studentStatsInteractCallback.onStudentLeft( it )
                 }
                 else {
                     val position = studentStatsList.indexOf( it )
@@ -106,9 +110,10 @@ class StudentStatsAdapter(
             deemphasize( holder )
         }
         holder.studentStatsItemView.setOnLongClickListener {
-            longClickListener.onStudentStatLongClickListener( studentStat )
+            studentStatsInteractCallback.onStudentStatLongClick( studentStat )
             true
         }
+        holder.studentStatsItemView.setOnClickListener { studentStatsInteractCallback.onStudentStatClick( studentStat ) }
     }
 
     override fun getItemCount(): Int {
@@ -116,21 +121,23 @@ class StudentStatsAdapter(
     }
 
     private fun emphasize( itemViewHolder : StudentStatsViewHolder ) {
-        itemViewHolder.studentStatsItemView.background = ColorDrawable( Color.RED )
+        itemViewHolder.studentStatsItemView.background =
+            AppCompatResources.getDrawable( context , R.drawable.student_stat_item_background_highlighted )
         arrayOf(
             itemViewHolder.studentAppName ,
             itemViewHolder.studentPresence ,
-            itemViewHolder.studentPresence ).forEach {
+            itemViewHolder.studentName ).forEach {
             it.setTextColor( Color.WHITE )
         }
     }
 
     private fun deemphasize( itemViewHolder : StudentStatsViewHolder ) {
-        itemViewHolder.studentStatsItemView.background = ColorDrawable( Color.WHITE )
+        itemViewHolder.studentStatsItemView.background =
+            AppCompatResources.getDrawable( context , R.drawable.student_stat_item_background_normal )
         arrayOf(
             itemViewHolder.studentAppName ,
             itemViewHolder.studentPresence ,
-            itemViewHolder.studentPresence ).forEach {
+            itemViewHolder.studentName ).forEach {
             it.setTextColor( Color.BLACK )
         }
     }
@@ -145,11 +152,11 @@ class StudentStatsAdapter(
         if ( stats1.presenceStatus != stats2.presenceStatus ) {
             var message = ""
             if ( stats2.presenceStatus == "Present" ) {
-                message = "is in the meeting"
+                message = context.getString(R.string.in_meeting_display)
                 attendanceTimeReport[ stats2.id ]!![ 1 ] = System.currentTimeMillis()
             }
             else {
-                message = "is not in the meeting"
+                message = context.getString(R.string.not_in_meeting_display)
                 val ( eta , start ) = attendanceTimeReport[ stats2.id ]!!.toList()
                 val netETA = eta + ( System.currentTimeMillis() - start )
                 attendanceTimeReport[ stats2.id ]!![ 0 ] = netETA
@@ -159,9 +166,9 @@ class StudentStatsAdapter(
         if ( stats1.onScreenStatus != stats2.onScreenStatus ) {
             var message = ""
             message = if ( stats2.onScreenStatus ) {
-                "is now using the meeting app"
+                context.getString(R.string.on_screen_display)
             } else {
-                "switched to some other app"
+                context.getString(R.string.not_on_screen_display)
             }
             report.add( Pair( getCurrentTime() , "${stats2.name} $message"))
         }
