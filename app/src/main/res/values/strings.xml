@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">OCMS Dashboard</string>
+    <string name="app_name" translatable="false">OCMS Dashboard</string>
 
     <string name="in_meeting_display">is in the meeting</string>
     <string name="not_in_meeting_display">is not in the meeting</string>
@@ -12,4 +12,7 @@
     <string name="total_students_display">Total students in the meeting</string>
     <string name="students_using_ocms_display">Students using OCMS</string>
     <string name="students_attending_lecture_display">Students attending the lecture</string>
+    <string name="active_in_classroom_display">Active in classroom</string>
+    <string name="present_display">Present</string>
+    <string name="absent_display">Absent</string>
 </resources>

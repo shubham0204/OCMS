@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="in_meeting_display">वर्गात आहे</string>
+    <string name="not_in_meeting_display">वर्गात नाही</string>
+    <string name="on_screen_display">क्लासरूम अॅप वापरत आहे</string>
+    <string name="show_summary_display">सारांश</string>
+    <string name="app_title_display">डॅशबोर्ड</string>
+    <string name="total_students_display">वर्गातील एकूण विद्यार्थी</string>
+    <string name="students_using_ocms_display">OCMS वापरणाऱ्या विद्यार्थ्यांची संख्या</string>
+    <string name="students_attending_lecture_display">वर्गात उपस्थित विद्यार्थ्यांची संख्या</string>
+    <string name="not_on_screen_display">इतर अॅप वापरत आहे</string>
+    <string name="active_in_classroom_display">वर्गात आहे</string>
+    <string name="present_display">उपस्थित</string>
+    <string name="absent_display">अनुपस्थित</string>
+</resources>

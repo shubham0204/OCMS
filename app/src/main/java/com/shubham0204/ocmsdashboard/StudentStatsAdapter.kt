@@ -29,8 +29,6 @@ class StudentStatsAdapter(
     private val dateFormat = SimpleDateFormat( "kk:mm dd-MM-yyyy" , Locale.getDefault() )
     val studentStatsList = ArrayList<StudentStats>()
     val report = ArrayList<Pair<String,String>>()
-    val timeReport = HashMap<String,Long>()
-    val attendanceTimeReport = HashMap<String,LongArray>()
     val idNameMap = HashMap<String,String>()
     var meetingStartTime = 0L
 
@@ -53,8 +51,6 @@ class StudentStatsAdapter(
                     if ( it.isActive ) {
                         studentStatsList.add( it )
                         idNameMap[ it.id ] = it.name
-                        timeReport[ it.id ] = System.currentTimeMillis()
-                        attendanceTimeReport[ it.id ] = longArrayOf( 0L , System.currentTimeMillis() )
                         notifyItemInserted( studentStatsList.indexOf( it ) )
                         studentStatsInteractCallback.onStudentEntered( it )
                     }
@@ -83,8 +79,12 @@ class StudentStatsAdapter(
     override fun onBindViewHolder(holder: StudentStatsViewHolder, position: Int) {
         val studentStat = studentStatsList[ position ]
         holder.studentName.text = studentStat.name
-        holder.studentAppName.text = if ( studentStat.onScreenStatus ) { "Active in classroom" } else { studentStat.onScreenApp }
-        holder.studentPresence.text = studentStat.presenceStatus
+        holder.studentAppName.text = if ( studentStat.onScreenStatus ) { context.getString(R.string.active_in_classroom_display) }
+        else { studentStat.onScreenApp }
+        holder.studentPresence.text = if ( studentStat.presenceStatus == "Present" ) {
+            context.getString(R.string.present_display)
+        }
+        else { context.getString(R.string.absent_display) }
         holder.studentCameraStatus.apply {
             if ( studentStat.cameraPermission ) {
                 setImageResource( R.drawable.camera_icon_24_dark )
@@ -101,8 +101,6 @@ class StudentStatsAdapter(
                 setImageDrawable( null )
             }
         }
-
-
         if ( !studentStat.onScreenStatus ) {
             emphasize( holder )
         }
@@ -153,13 +151,9 @@ class StudentStatsAdapter(
             var message = ""
             if ( stats2.presenceStatus == "Present" ) {
                 message = context.getString(R.string.in_meeting_display)
-                attendanceTimeReport[ stats2.id ]!![ 1 ] = System.currentTimeMillis()
             }
             else {
                 message = context.getString(R.string.not_in_meeting_display)
-                val ( eta , start ) = attendanceTimeReport[ stats2.id ]!!.toList()
-                val netETA = eta + ( System.currentTimeMillis() - start )
-                attendanceTimeReport[ stats2.id ]!![ 0 ] = netETA
             }
             report.add( Pair( getCurrentTime() , "${stats2.name} $message"))
         }

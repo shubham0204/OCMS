@@ -9,6 +9,7 @@ class StudentStats {
 
         private val STUDENT_NAME = "name"
         private val IS_ACTIVE = "is_active"
+        private val START = "start"
 
         private val CAMERA_PERMISSION_STATUS = "camera_status"
         private val AUDIO_PERMISSION_STATUS = "audio_status"
@@ -29,9 +30,14 @@ class StudentStats {
             studentStats.presenceStatus = studentInfoSnapshot.child( PRESENCE_STATUS ).getValue( String::class.java ) ?: ""
             studentStats.onScreenStatus = studentInfoSnapshot.child( ON_SCREEN_STATUS ).getValue( Boolean::class.java ) ?: false
             studentStats.onScreenApp = studentInfoSnapshot.child( ON_SCREEN_APP ).getValue( String::class.java ) ?: ""
+            studentStats.start = studentInfoSnapshot.child( START ).getValue( Long::class.java ) ?: 0L
             return studentStats
         }
 
+    }
+
+    fun getAttendedDuration() : Long {
+        return System.currentTimeMillis() - start
     }
 
     override fun equals(other: Any?): Boolean {
@@ -47,6 +53,7 @@ class StudentStats {
     var id : String = ""
     var name : String = ""
     var isActive : Boolean = true
+    var start : Long = 0L
 
     var cameraPermission : Boolean = false
     var audioPermission : Boolean = false

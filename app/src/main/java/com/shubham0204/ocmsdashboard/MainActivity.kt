@@ -1,12 +1,12 @@
 package com.shubham0204.ocmsdashboard
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -15,7 +15,8 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.database.FirebaseDatabase
 import com.shubham0204.ocmsdashboard.databinding.ActivityMainBinding
 import java.io.FileNotFoundException
-import java.lang.StringBuilder
+import java.util.*
+import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,10 +27,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var summaryBottomSheetViewModel : SummaryBottomSheetViewModel
     private val handler = Handler( Looper.getMainLooper() )
     private val COUNT_UPDATE_INTERVAL = 10000L
+    private val idNameMap = HashMap<String,String>()
+    private val startTimeMap = HashMap<String,Long>()
+    private val endTimeMap = HashMap<String,Long>()
+    private val ATTENDANCE_THRESHOLD = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         activityMainBinding = ActivityMainBinding.inflate( layoutInflater )
+        changeLanguage()
         setContentView( activityMainBinding.root )
 
         // Documentation
@@ -105,17 +111,31 @@ class MainActivity : AppCompatActivity() {
 
     private fun downloadAttendanceReport() {
         val reportBuilder = StringBuilder()
-        val names = studentStatsAdapter.idNameMap
-        studentStatsAdapter.attendanceTimeReport.forEach{
-            reportBuilder.append( names[ it.component1() ] + " " + millisToMinutes( it.component2()[0] ) + "\n" )
+        startTimeMap.forEach{ id , startTime ->
+            val endTime = if ( endTimeMap.contains( id ) ) {
+                endTimeMap[ id ]!!
+            }
+            else {
+                System.currentTimeMillis()
+            }
+            val eta = ( endTime - startTime ) / ( 1000 * 60 )
+            if ( eta > ATTENDANCE_THRESHOLD ) {
+
+            }
+            reportBuilder.append( "${idNameMap[id]} $eta minutes\n" )
         }
         reportString = reportBuilder.toString()
         openCreateFileDialog( "attendance_report.txt" )
     }
 
-    private fun millisToMinutes( millis : Long ) : Double {
-        return ( millis / ( 1000.0 * 60 ) )
+    private fun changeLanguage() {
+        val locale = Locale( "mr" )
+        Locale.setDefault(locale)
+        val config = resources.configuration
+        config.setLocale(locale)
+        createConfigurationContext( config )
     }
+
 
     private fun openCreateFileDialog( filename : String ) {
         // https://developer.android.com/training/data-storage/shared/documents-files#create-file
@@ -155,11 +175,14 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make( activityMainBinding.root , "Entered" , Snackbar.LENGTH_SHORT ).show()
             summaryBottomSheetViewModel.totalStudentsCount.value =
                 summaryBottomSheetViewModel.totalStudentsCount.value!! + 1
+            idNameMap[ studentStats.id ] = studentStats.name
+            startTimeMap[ studentStats.id ] = System.currentTimeMillis()
         }
 
         override fun onStudentLeft(studentStats: StudentStats) {
             summaryBottomSheetViewModel.totalStudentsCount.value =
                 summaryBottomSheetViewModel.totalStudentsCount.value!! - 1
+            endTimeMap[ studentStats.id ] = System.currentTimeMillis()
         }
 
     }
