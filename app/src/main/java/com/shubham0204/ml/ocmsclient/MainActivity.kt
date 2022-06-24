@@ -16,6 +16,7 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
@@ -46,13 +47,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var notificationManager : NotificationManager
     private lateinit var cameraProvider: ProcessCameraProvider
-    private var isCameraOn = false
     private lateinit var previewUseCase : UseCase
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewBinding = ActivityMainBinding.inflate( layoutInflater )
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView( viewBinding.root )
 
         onScreenAppListener = OnScreenAppListener( this )
@@ -69,16 +70,16 @@ class MainActivity : AppCompatActivity() {
         }
         else {
             val alertDialog = MaterialAlertDialogBuilder( this ).apply {
-                setTitle( "Usage Stats Permission")
-                setMessage( "The app couldn't function without the usage stats permission." )
+                setTitle( getString(R.string.usage_stats_display))
+                setMessage( getString(R.string.usage_stats_des_display) )
                 setCancelable( false )
-                setPositiveButton( "ALLOW" ) { dialog, which ->
+                setPositiveButton( getString( R.string.allow_display )) { dialog, which ->
                     dialog.dismiss()
                     Intent( Settings.ACTION_USAGE_ACCESS_SETTINGS ).apply {
                         startActivity( this )
                     }
                 }
-                setNegativeButton( "CLOSE" ) { dialog, which ->
+                setNegativeButton( getString( R.string.close_display) ) { dialog, which ->
                     dialog.dismiss()
                     finish()
                 }
@@ -101,15 +102,9 @@ class MainActivity : AppCompatActivity() {
                 startActivity( this )
             }
         }*/
-
+        viewBinding.cameraPreviewview.isClickable = false
         viewBinding.leaveMeetingButton.setOnClickListener { leaveMeeting() }
 
-        viewBinding.cameraPreviewview.setOnClickListener {
-            if ( isCameraOn ) stopCameraPreview() else startCameraPreview()
-        }
-
-
-      
     }
 
 
@@ -162,10 +157,6 @@ class MainActivity : AppCompatActivity() {
         if ( sharedPreferences.getBoolean( getString( R.string.service_running_status_key ) , false ) ) {
             stopService( Intent( this@MainActivity , ForegroundAppService::class.java) )
         }
-        Intent( this , JoinMeetingActivity::class.java ).apply {
-            startActivity( this )
-            finish()
-        }
     }
 
     override fun onDestroy() {
@@ -217,12 +208,6 @@ class MainActivity : AppCompatActivity() {
     private fun checkAudioPermission() : Boolean = checkSelfPermission( Manifest.permission.RECORD_AUDIO ) ==
             PackageManager.PERMISSION_GRANTED
 
-    private fun stopCameraPreview() {
-        Log.e( "APP" , "Camera stopped" )
-        cameraProvider.unbind( previewUseCase )
-        isCameraOn = false
-    }
-
     private fun startCameraPreview() {
         Log.e( "APP" , "Camera started" )
         val cameraProviderFuture = ProcessCameraProvider.getInstance( this )
@@ -240,7 +225,6 @@ class MainActivity : AppCompatActivity() {
             imageFrameAnalysis.setAnalyzer(Executors.newSingleThreadExecutor(), frameAnalyzer )
             previewUseCase = preview
             cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview , imageFrameAnalysis )
-            isCameraOn = true
         }, ContextCompat.getMainExecutor(this) )
     }
 

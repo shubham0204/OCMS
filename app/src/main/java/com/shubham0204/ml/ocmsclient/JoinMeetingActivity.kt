@@ -74,6 +74,7 @@ class JoinMeetingActivity : AppCompatActivity() {
             .child( userID ).apply {
                 child( "name" ).setValue( userName )
                 child( "is_active" ).setValue( true )
+                child( "start" ).setValue( System.currentTimeMillis() )
             }
     }
 
@@ -102,14 +103,14 @@ class JoinMeetingActivity : AppCompatActivity() {
         }
         else {
             val alertDialog = MaterialAlertDialogBuilder( this ).apply {
-                setTitle( "Camera Permission")
-                setMessage( "The app couldn't function without the camera permission." )
+                setTitle( getString(R.string.camera_permission_display))
+                setMessage( getString(R.string.camera_permission_des_display) )
                 setCancelable( false )
-                setPositiveButton( "ALLOW" ) { dialog, which ->
+                setPositiveButton( getString(R.string.allow_display) ) { dialog, which ->
                     dialog.dismiss()
                     requestCameraPermission()
                 }
-                setNegativeButton( "CLOSE" ) { dialog, which ->
+                setNegativeButton( getString(R.string.close_display) ) { dialog, which ->
                     dialog.dismiss()
                     finish()
                 }

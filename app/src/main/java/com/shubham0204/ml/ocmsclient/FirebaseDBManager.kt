@@ -51,7 +51,7 @@ class FirebaseDBManager( private var context: Context ) {
     fun updateLocationStatus(localityName: String) = updateStudentStat(LOCATION_STATUS, localityName)
 
     private fun updateStudentStat(statKey: String, value: Any) {
-        CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.Default).launch{
             userDBReference.child(statKey)
                 .setValue(value)
                 .addOnSuccessListener {

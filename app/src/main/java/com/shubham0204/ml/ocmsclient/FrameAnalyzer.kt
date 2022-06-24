@@ -27,7 +27,7 @@ class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageA
 
     private var prevPresenceStatus = "Present"
     private var prevPresenceStatusCount = 0
-    private val lazyUpdateThreshold = 20
+    private val lazyUpdateThreshold = 5
 
     override fun analyze(image: ImageProxy) {
         Log.e( "APP" , "started" )
@@ -60,6 +60,7 @@ class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageA
     }
 
     private fun lazyUpdatePresenceStatus( status : String ) {
+        Log.e( "APP" , "status $status")
         if ( status == prevPresenceStatus ) {
             prevPresenceStatusCount += 1
         }
@@ -71,22 +72,6 @@ class FrameAnalyzer( private val firebaseDBManager: FirebaseDBManager ) : ImageA
             firebaseDBManager.updatePresenceStatus( status )
             prevPresenceStatusCount = 0
         }
-    }
-
-    // Rotate the given `source` by `degrees`.
-    // See this SO answer -> https://stackoverflow.com/a/16219591/10878733
-    private fun rotateBitmap( source: Bitmap , degrees : Float ): Bitmap {
-        val matrix = Matrix()
-        matrix.postRotate( degrees )
-        return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix , false )
-    }
-
-    // Flip the given `Bitmap` horizontally.
-    // See this SO answer -> https://stackoverflow.com/a/36494192/10878733
-    private fun flipBitmap( source: Bitmap ): Bitmap {
-        val matrix = Matrix()
-        matrix.postScale(-1f, 1f, source.width / 2f, source.height / 2f)
-        return Bitmap.createBitmap(source, 0, 0, source.width, source.height, matrix, true)
     }
 
 }
