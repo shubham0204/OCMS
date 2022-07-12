@@ -157,6 +157,7 @@ class MainActivity : AppCompatActivity() {
         if ( sharedPreferences.getBoolean( getString( R.string.service_running_status_key ) , false ) ) {
             stopService( Intent( this@MainActivity , ForegroundAppService::class.java) )
         }
+        finish()
     }
 
     override fun onDestroy() {

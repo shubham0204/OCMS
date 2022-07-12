@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">OCMS Teacher</string>
+    <string name="app_name" translatable="false">OCMS Student</string>
 
     <string name="notification_channel_id" translatable="false">id</string>
     <string name="notification_channel_name" translatable="false">OCMS</string>

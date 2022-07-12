@@ -64,7 +64,6 @@ class JoinMeetingActivity : AppCompatActivity() {
             setUserNameInFirebaseDB( userID , userName )
             this.putExtra( "user_name" , userName )
             startActivity( this )
-            finish()
         }
     }
 
